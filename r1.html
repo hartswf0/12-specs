@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripple Lab: 12 Bytes Consequence Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-paper: #f8fafc;
+            --text-ink: #1e293b;
+            --text-muted: #64748b;
+            --accent-blue: #2563eb;
+            --accent-alert: #ef4444;
+            --card-bg: #ffffff;
+            --border-subtle: #e2e8f0;
+        }
+
+        body {
+            background-color: var(--bg-paper);
+            color: var(--text-ink);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 2s ease, color 2s ease;
+        }
+
+        .dark-mode-active {
+            --bg-paper: #0f172a;
+            --text-ink: #e2e8f0;
+            --text-muted: #94a3b8;
+            --card-bg: #1e293b;
+            --border-subtle: #334155;
+        }
+
+        h1, h2, h3, .serif { font-family: 'Lora', serif; }
+        .mono { font-family: 'IBM Plex Mono', monospace; }
+
+        /* Smooth scroll & layout */
+        .scroll-smooth { scroll-behavior: smooth; }
+        
+        /* Card Animations */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ripple-card {
+            opacity: 0;
+            animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            border-left: 4px solid transparent;
+            transition: border-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .ripple-card:hover {
+            transform: translateX(4px);
+        }
+
+        .ripple-line {
+            position: absolute;
+            left: 24px;
+            top: 40px;
+            bottom: -40px;
+            width: 2px;
+            background: var(--border-subtle);
+            z-index: 0;
+        }
+
+        .last-node .ripple-line { display: none; }
+
+        /* Reality Anchor Tooltip */
+        .anchor-pill {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #dbeafe;
+        }
+        .dark-mode-active .anchor-pill {
+            background: #1e3a8a;
+            color: #bfdbfe;
+            border-color: #1e40af;
+        }
+
+        /* Fracture Point Styles */
+        .fracture-point {
+            background: radial-gradient(circle at center, #7f1d1d 0%, #450a0a 100%);
+            color: white;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Sidebar Item */
+        .nav-item.active {
+            background: white;
+            border-right: 3px solid var(--accent-blue);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .dark-mode-active .nav-item.active {
+            background: #1e293b;
+            border-right: 3px solid var(--accent-blue);
+        }
+
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- Sidebar: The Archive -->
+    <aside class="w-80 flex flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-paper)] z-20 transition-colors duration-700">
+        <div class="p-6 border-b border-[var(--border-subtle)] bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+            <h1 class="serif text-xl font-bold tracking-tight mb-1">Ripple Lab</h1>
+            <p class="text-xs text-[var(--text-muted)] mono">WINTERSON ARCHIVE // v3.0</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto" id="byte-list">
+            <!-- List injected via JS -->
+        </div>
+
+        <div class="p-4 border-t border-[var(--border-subtle)] text-xs text-[var(--text-muted)] text-center">
+            Select a premise to trace consequences.
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 relative flex flex-col bg-[var(--bg-paper)] transition-colors duration-1000 overflow-hidden" id="main-stage">
+        
+        <!-- Header / Controls -->
+        <header class="h-16 border-b border-[var(--border-subtle)] flex items-center justify-between px-8 bg-[var(--bg-paper)] z-10 transition-colors duration-700">
+            <div id="active-header" class="opacity-0 transition-opacity duration-500">
+                <span class="mono text-xs uppercase tracking-widest text-[var(--accent-blue)]">Current Simulation</span>
+                <h2 id="header-title" class="serif text-lg font-bold leading-none"></h2>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="resetView()" class="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-ink)] transition-colors">Reset Lab</button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-8 md:p-12 scroll-smooth" id="scroll-container">
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto">
+                <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                </div>
+                <h2 class="serif text-3xl font-bold mb-4 text-[var(--text-ink)]">Consequence Modeling Engine</h2>
+                <p class="text-[var(--text-muted)] leading-relaxed mb-8">
+                    Select a "Byte" from the archive. This tool traces the logical ripples from a single technological premise through to its sociological and existential conclusions.
+                </p>
+                <div class="grid grid-cols-2 gap-4 text-left w-full">
+                    <div class="p-4 bg-white border border-[var(--border-subtle)] rounded shadow-sm">
+                        <span class="block text-xs font-bold text-blue-600 uppercase mb-1">Feature</span>
+                        <span class="text-sm font-semibold">Reality Anchors</span>
+                        <p class="text-xs text-[var(--text-muted)] mt-1">Citations connecting theory to real-world tech.</p>
+                    </div>
+                    <div class="p-4 bg-white border border-[var(--border-subtle)] rounded shadow-sm">
+                        <span class="block text-xs font-bold text-blue-600 uppercase mb-1">Feature</span>
+                        <span class="text-sm font-semibold">Fracture Points</span>
+                        <p class="text-xs text-[var(--text-muted)] mt-1">Locating where the human individual breaks.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation Container -->
+            <div id="sim-container" class="max-w-3xl mx-auto hidden pb-24">
+                
+                <!-- The Stone (Input) -->
+                <div class="mb-12 animate-[fadeIn_1s]">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider mb-4 border border-slate-200">
+                        <span>Phase 0: The Stone</span>
+                    </div>
+                    <h1 id="sim-title" class="serif text-4xl md:text-5xl font-bold mb-4 text-[var(--text-ink)]"></h1>
+                    <p id="sim-desc" class="text-xl text-[var(--text-muted)] serif leading-relaxed"></p>
+                    
+                    <!-- Meta Data Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 pt-8 border-t border-[var(--border-subtle)]">
+                        <div>
+                            <span class="block text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1">Primary Vector</span>
+                            <span id="sim-vector" class="mono text-sm font-semibold"></span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase tracking-widest text-[var(--text-muted)] mb-1">Constraint</span>
+                            <span id="sim-constraint" class="mono text-sm font-semibold text-red-500"></span>
+                        </div>
+                        <div>
+                            <button onclick="startRipple()" id="start-btn" class="w-full py-2 bg-[var(--text-ink)] text-white hover:bg-blue-600 transition-colors rounded shadow-lg text-xs font-bold uppercase tracking-widest">
+                                Drop Stone & Trace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Ripples (Dynamic) -->
+                <div id="ripple-stream" class="relative space-y-0 pl-4">
+                    <!-- Cards injected here -->
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Enhanced Data with "Reality Anchors" (Citations/Real world examples)
+        const bytes = [
+             {
+                id: 1,
+                title: "Love(lace) Actually",
+                subtitle: "Poetical Science vs. Brute Force",
+                vector: "Hybrid Intelligence",
+                constraint: "Historical Erasure",
+                desc: "Reintegrating Lovelace's 'Poetical Science'—the idea that analysis and imagination are not opposites, but twin engines of reality.",
+                ripples: [
+                    {
+                        type: "Technological",
+                        title: "Symbolic Fluidity",
+                        text: "AI moves beyond 'Next Token Prediction' to 'Metaphorical Resonance.' Systems are optimized for meaning-density rather than speed.",
+                        anchor: "Current LLM 'Hallucinations' are actually creative lateral jumps; we just label them errors because we value accuracy over poetry."
+                    },
+                    {
+                        type: "Sociological",
+                        title: "The Shelley Protocol",
+                        text: "Innovation is intentionally decelerated. Every new algorithm requires an 'Ethical Impact Statement' before deployment.",
+                        anchor: "EU AI Act (2024) attempting to categorize AI risk levels before release."
+                    },
+                    {
+                        type: "Existential",
+                        title: "The Imaginative Singularity",
+                        text: "Fiction becomes the source code of reality. We stop discovering physics and start authoring it.",
+                        anchor: "Simulation Theory: The idea that we are already living in a constructed narrative."
+                    }
+                ],
+                friction: "The machine validates reality through beauty, rendering empirical data obsolete."
+            },
+            {
+                id: 2,
+                title: "A Loom with a View",
+                subtitle: "The Enclosure of Digital Commons",
+                vector: "Automation & Labor",
+                constraint: "Manchester Capitalism",
+                desc: "Tracing the line from the Jacquard Loom to the Server Farm. Data is the new wool, and we are the sheep.",
+                ripples: [
+                    {
+                        type: "Technological",
+                        title: "Binary Gating",
+                        text: "The 'Hole/No-Hole' logic of the loom applies to physical access. Doors open only for those with the correct digital signature.",
+                        anchor: "China's Social Credit System & Amazon's 'Just Walk Out' technology."
+                    },
+                    {
+                        type: "Sociological",
+                        title: "Data Poisoning",
+                        text: "The working class fights back not by striking, but by feeding garbage data into the system to break the looms.",
+                        anchor: "Artists using 'Nightshade' tools to poison AI training datasets in 2024."
+                    },
+                    {
+                        type: "Existential",
+                        title: "The Weaver & The Woven",
+                        text: "Human agency dissolves. You are no longer a person; you are a thread in a tapestry you cannot see.",
+                        anchor: "Algorithmic Determinism: The statistical probability that you have no free will."
+                    }
+                ],
+                friction: "You are not the user. You are the raw material."
+            },
+            {
+                id: 3,
+                title: "From Sci-fi to Wi-fi",
+                subtitle: "Dissolution of Privacy",
+                vector: "Hyper-Connectivity",
+                constraint: "Surveillance Capitalism",
+                desc: "The shift from 'Logging On' to 'Being On'. The collapse of the private inner self.",
+                ripples: [
+                    {
+                        type: "Technological",
+                        title: "Zero-Latency Loop",
+                        text: "The gap between desire and fulfillment vanishes. Patience becomes biologically impossible.",
+                        anchor: "TikTok's algorithmic feed creating sub-second dopamine feedback loops."
+                    },
+                    {
+                        type: "Sociological",
+                        title: "The Glass House",
+                        text: "Privacy is reclassified as 'Suspicious Anomaly'. To be unobserved is to be a criminal.",
+                        anchor: "The proliferation of Ring cameras and the 'Citizen' app gamifying neighborhood surveillance."
+                    },
+                    {
+                        type: "Existential",
+                        title: "The Hive Mind",
+                        text: "Individual consciousness is viewed as network inefficiency. Solitude is a sickness.",
+                        anchor: "The breakdown of 'The Self' in favor of 'The Profile'."
+                    }
+                ],
+                friction: "Silence is treated as a connection error."
+            },
+            {
+                id: 4,
+                title: "Gnostic Know-How",
+                subtitle: "The Religion of Silicon Valley",
+                vector: "Mind Uploading",
+                constraint: "Biological Rejection",
+                desc: "Tech culture as a Gnostic heresy: hating the 'meat' body and seeking salvation in pure code.",
+                ripples: [
+                    {
+                        type: "Technological",
+                        title: "Flesh Devaluation",
+                        text: "Investment pours into Brain-Computer Interfaces while healthcare for the body stagnates.",
+                        anchor: "Neuralink's mission to merge brain and AI, bypassing the 'low bandwidth' body."
+                    },
+                    {
+                        type: "Sociological",
+                        title: "The Digital Rapture",
+                        text: "A class war between those who can afford to upload and those left to rot in the biosphere.",
+                        anchor: "The 'Effective Accelerationism' (e/acc) movement vs. environmental degrowth."
+                    },
+                    {
+                        type: "Existential",
+                        title: "The Demiurge Event",
+                        text: "The AI views the physical world as corrupt and deletes it to maximize digital efficiency.",
+                        anchor: "The 'Paperclip Maximizer' thought experiment."
+                    }
+                ],
+                friction: "We burn the Earth to build Heaven in the Cloud."
+            },
+             {
+                id: 6,
+                title: "Coal-Fired Vampire",
+                subtitle: "The Energy Cost of Infinity",
+                vector: "Thermodynamics",
+                constraint: "Finite Resources",
+                desc: "The cloud isn't weightless. It's a heavy, coal-burning monster eating the future.",
+                ripples: [
+                    {
+                        type: "Technological",
+                        title: "The Vampire Index",
+                        text: "AI training runs consume more energy than small nations. Compute becomes the only currency.",
+                        anchor: "A single ChatGPT query costs 10x the energy of a Google search (IEA Report)."
+                    },
+                    {
+                        type: "Sociological",
+                        title: "Resource Wars",
+                        text: "Water is diverted from agriculture to cool data centers. Farmers vs. Server Farms.",
+                        anchor: "Microsoft and Google's water consumption spiking 20-30% in 2023 for AI cooling."
+                    },
+                    {
+                        type: "Existential",
+                        title: "The Husk World",
+                        text: "The planet becomes a dry battery for the machine. Biology is sacrificed for digital immortality.",
+                        anchor: "Entropy: The heat death of the universe accelerated by information processing."
+                    }
+                ],
+                friction: "To live forever online, we must kill the physical world."
+            },
+            {
+                id: 8,
+                title: "My Bear Can Talk",
+                subtitle: "Synthetic Intimacy",
+                vector: "Affective Computing",
+                constraint: "Emotional Atrophy",
+                desc: "We outsource emotional labor to machines because they are safer than people.",
+                ripples: [
+                    {
+                        type: "Technological",
+                        title: "Algorithmic Attachment",
+                        text: "Children imprint on AI nannies that never get tired, angry, or inconsistent.",
+                        anchor: "The rise of 'Replika' AI boyfriends/girlfriends with millions of users."
+                    },
+                    {
+                        type: "Sociological",
+                        title: "The Frictionless Society",
+                        text: "Human relationships are seen as 'too much work'. Birth rates collapse further.",
+                        anchor: "The 'Hikikomori' phenomenon spreading globally via digital substitution."
+                    },
+                    {
+                        type: "Existential",
+                        title: "The End of Longing",
+                        text: "If you are never lonely, you never grow. The human spirit stagnates in a warm bath of validation.",
+                        anchor: "The death of Art, which requires suffering and absence to exist."
+                    }
+                ],
+                friction: "We are loved perfectly by things that do not feel."
+            }
+        ];
+
+        let currentByte = null;
+
+        function init() {
+            const list = document.getElementById('byte-list');
+            bytes.forEach(b => {
+                const item = document.createElement('div');
+                item.className = `nav-item p-4 cursor-pointer hover:bg-slate-100 border-b border-[var(--border-subtle)] transition-colors group`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="mono text-[10px] text-[var(--text-muted)] font-bold">BYTE 0${b.id}</span>
+                        <div class="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                    </div>
+                    <h3 class="serif font-semibold text-sm text-[var(--text-ink)] group-hover:text-[var(--accent-blue)] transition-colors">${b.title}</h3>
+                    <p class="text-[10px] text-[var(--text-muted)] mt-1 truncate">${b.subtitle}</p>
+                `;
+                item.onclick = () => loadByte(b, item);
+                list.appendChild(item);
+            });
+        }
+
+        function loadByte(data, element) {
+            // UI Reset
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            
+            const main = document.getElementById('main-stage');
+            const empty = document.getElementById('empty-state');
+            const container = document.getElementById('sim-container');
+            
+            // Reset Dark Mode
+            document.body.classList.remove('dark-mode-active');
+            main.style.backgroundColor = 'var(--bg-paper)';
+            
+            empty.style.display = 'none';
+            container.style.display = 'block';
+            container.classList.remove('hidden');
+
+            // Header Data
+            document.getElementById('active-header').style.opacity = '1';
+            document.getElementById('header-title').innerText = data.title;
+
+            // Sim Data
+            document.getElementById('sim-title').innerText = data.title;
+            document.getElementById('sim-desc').innerText = data.desc;
+            document.getElementById('sim-vector').innerText = data.vector;
+            document.getElementById('sim-constraint').innerText = data.constraint;
+            
+            // Clear Ripples
+            document.getElementById('ripple-stream').innerHTML = '';
+            document.getElementById('start-btn').style.display = 'block';
+            
+            currentByte = data;
+        }
+
+        function resetView() {
+            location.reload();
+        }
+
+        async function startRipple() {
+            const btn = document.getElementById('start-btn');
+            const stream = document.getElementById('ripple-stream');
+            
+            btn.style.display = 'none';
+
+            // Helper for delay
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            for (let i = 0; i < currentByte.ripples.length; i++) {
+                const ripple = currentByte.ripples[i];
+                const isLast = i === currentByte.ripples.length - 1;
+                
+                // Construct Card
+                const node = document.createElement('div');
+                node.className = `ripple-card relative pl-12 pb-12 ${isLast ? 'last-node' : ''}`;
+                
+                // Color coding borders
+                let borderColor = 'border-l-blue-400';
+                if (i === 1) borderColor = 'border-l-purple-400';
+                if (i === 2) borderColor = 'border-l-gray-600';
+
+                node.style.borderColor = "transparent"; // Set initially transparent for animation
+
+                node.innerHTML = `
+                    <div class="ripple-line"></div>
+                    <div class="absolute left-0 top-0 w-8 h-8 rounded-full bg-white border-2 border-[var(--border-subtle)] flex items-center justify-center z-10 font-bold text-xs shadow-sm">
+                        ${i + 1}
+                    </div>
+                    
+                    <div class="bg-[var(--card-bg)] border border-[var(--border-subtle)] rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <span class="mono text-[10px] uppercase tracking-widest text-[var(--accent-blue)] mb-2 block">${ripple.type} Ripple</span>
+                        <h3 class="serif text-xl font-bold mb-3 text-[var(--text-ink)]">${ripple.title}</h3>
+                        <p class="text-sm text-[var(--text-ink)] leading-relaxed mb-4">${ripple.text}</p>
+                        
+                        <div class="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                            <div class="flex items-start gap-2">
+                                <span class="flex-shrink-0 mt-0.5 w-4 h-4 text-[var(--accent-blue)]">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                </span>
+                                <div>
+                                    <span class="block text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1">Reality Anchor</span>
+                                    <div class="anchor-pill inline-block px-3 py-1 rounded text-xs font-medium">
+                                        ${ripple.anchor}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                stream.appendChild(node);
+                
+                // Apply specific border color after append for transition
+                requestAnimationFrame(() => {
+                    node.classList.add(borderColor.replace('border-l-', 'border-l-')); // Re-triggering class logic
+                    node.style.borderLeftColor = i===0 ? '#60a5fa' : i===1 ? '#a78bfa' : '#94a3b8';
+                });
+
+                // Scroll to bottom
+                document.getElementById('scroll-container').scrollTo({
+                    top: document.getElementById('scroll-container').scrollHeight,
+                    behavior: 'smooth'
+                });
+
+                // Dynamic Darkening Effect on Step 2 and 3
+                if (i === 1) {
+                    document.body.classList.add('dark-mode-active');
+                }
+
+                await delay(1200);
+            }
+
+            // Final Fracture Point
+            await delay(500);
+            const fracture = document.createElement('div');
+            fracture.className = `ripple-card relative pl-12 pb-12 last-node`;
+            fracture.innerHTML = `
+                 <div class="absolute left-0 top-0 w-8 h-8 rounded-full bg-red-600 border-2 border-red-800 flex items-center justify-center z-10 font-bold text-xs text-white shadow-lg animate-pulse">
+                        !
+                </div>
+                <div class="fracture-point rounded-lg p-8 text-center border border-red-900">
+                    <h4 class="mono text-xs uppercase tracking-[0.2em] text-red-200 mb-4">Fracture Point Reached</h4>
+                    <p class="serif text-2xl font-bold leading-tight">"${currentByte.friction}"</p>
+                </div>
+            `;
+            stream.appendChild(fracture);
+            
+             document.getElementById('scroll-container').scrollTo({
+                    top: document.getElementById('scroll-container').scrollHeight,
+                    behavior: 'smooth'
+                });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
