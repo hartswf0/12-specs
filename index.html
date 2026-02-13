@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Protocol of Capture</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #e0e0e0;
+            --accent-color: #00ff41; /* Terminal Green */
+            --alert-color: #ff3333; /* Fracture Red */
+            --secondary-color: #444;
+            --panel-bg: #111;
+            --font-main: 'Georgia', serif;
+            --font-mono: 'Courier New', monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--secondary-color);
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+
+        h1 {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            text-transform: uppercase;
+        }
+
+       .subtitle {
+            font-family: var(--font-mono);
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Abstract */
+       .abstract {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            font-style: italic;
+            border-left: 2px solid var(--accent-color);
+            background: #0f0f0f;
+        }
+
+        /* Main Container */
+       .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Byte Cards */
+       .byte-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--secondary-color);
+            margin-bottom: 2rem;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+       .byte-header {
+            padding: 1rem;
+            background: #1a1a1a;
+            border-bottom: 1px solid var(--secondary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+       .byte-title {
+            font-family: var(--font-mono);
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+       .byte-id {
+            color: var(--accent-color);
+            font-size: 0.8rem;
+        }
+
+        /* Ripple Visualization */
+       .byte-content {
+            padding: 1.5rem;
+            display: none; /* Hidden by default */
+        }
+
+       .byte-card.active.byte-content {
+            display: block;
+        }
+
+       .layer-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+       .stone-block {
+            background: #222;
+            padding: 1rem;
+            border-left: 3px solid #fff;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Ripple Chain Animation */
+       .ripple-chain {
+            position: relative;
+            margin: 2rem 0;
+            padding-left: 1rem;
+            border-left: 1px dashed var(--secondary-color);
+        }
+
+       .ripple-step {
+            margin-bottom: 1.5rem;
+            position: relative;
+            opacity: 0.9;
+        }
+
+       .ripple-step::before {
+            content: "↓";
+            position: absolute;
+            left: -1.4rem;
+            top: 0;
+            color: var(--accent-color);
+            font-family: var(--font-mono);
+        }
+
+       .ripple-step strong {
+            color: var(--accent-color);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Fracture Point */
+       .fracture-point {
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid var(--alert-color);
+            padding: 1rem;
+            color: #ffcccc;
+            margin-top: 2rem;
+            position: relative;
+        }
+
+       .fracture-point::before {
+            content: "FRACTURE_POINT // SENSORY_END_CAP";
+            position: absolute;
+            top: -0.8rem;
+            left: 1rem;
+            background: var(--bg-color);
+            padding: 0 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--alert-color);
+        }
+
+        /* Left Wall Check */
+       .left-wall {
+            margin-top: 1.5rem;
+            background: #000;
+            border: 1px solid #333;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+       .left-wall-title {
+            color: var(--accent-color);
+            border-bottom: 1px solid #333;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+       .citation-link {
+            color: #555;
+            text-decoration: none;
+            margin-left: 5px;
+            font-size: 0.7em;
+            vertical-align: super;
+        }
+        
+       .citation-link:hover {
+            color: var(--accent-color);
+        }
+
+        /* References Section */
+       .references {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--secondary-color);
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+       .ref-item {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+           .byte-content {
+                padding: 1rem;
+            }
+            h1 { font-size: 1.5rem; }
+           .ripple-step { margin-left: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>The Protocol of Capture</h1>
+    <div class="subtitle">Speculative Physics // Left Wall Validated</div>
+</header>
+
+<div class="abstract">
+    <strong>Abstract:</strong> This document validates the "Protocol of Capture" speculative framework against the "Left Wall" of biophysical and economic reality. It enforces strict "Therefore" chaining: identifying the single permitted "Lie" (Axiom) and tracing its ripples through infrastructure, politics, and psychology until they fracture against the hard limits of the human user.
+</div>
+
+<div class="container" id="byte-container">
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">The Stone Thrower</span>
+            <span class="byte-id">BYTE_01</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": The new serfdom is invisible; we toil in the fields of Data, but think we are playing.
+            </div>
+
+            <span class="layer-label">PROCESSING_LAYER // THE_RIPPLES</span>
+            <div class="ripple-chain">
+                <div class="ripple-step">
+                    <strong>RIPPLE_1_IMMEDIATE</strong>
+                    If is true, therefore movement, speech, and attention only become "value" when captured as data; therefore anonymity is treated as non-participation.
+                </div>
+                <div class="ripple-step">
+                    <strong>RIPPLE_2_INFRASTRUCTURE</strong>
+                    Because is true, therefore the city is built as a Capture Engine: public space requires authentication, and access to basics is bundled with biometric/behavioral updates.
+                </div>
+                <div class="ripple-step">
+                    <strong>RIPPLE_3_SOCIOPOLITICAL</strong>
+                    Because reallocates resources, therefore Platform Owners become Landlords and users become Tenant Farmers, paying continuous engagement for heat, water, and transit.
+                </div>
+                <div class="ripple-step">
+                    <strong>RIPPLE_4_PSYCHOLOGICAL</strong>
+                    Because defines survival, therefore the individual develops Performative Exhaustion: silence feels like starvation; pausing feels like erasure.
+                </div>
+            </div>
+
+            <span class="layer-label">OUTPUT_LAYER // FRICTION_EXTRACTION</span>
+            <div class="fracture-point">
+                At the bakery, cash is refused; only Engagement Credits buy bread. The Tenant realizes they are hungry because they were not "interesting" enough today—panicky cacophony of checkout beeps, auto-ads, and shame-breath in their throat.
+            </div>
+
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Economic data confirms the shift from profit-seeking to rent-seeking ("Technofeudalism") where platforms extract value from unpaid user labor <a href="#[1]" class="citation-link">[1]</a> <a href="#[2]" class="citation-link">[2]</a>. "Cloud Proles" are real-world analogues to the Tenant Farmer <a href="#[3]" class="citation-link">[3]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">The First Women</span>
+            <span class="byte-id">BYTE_02</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": The foundational code of AI was stripped of the "Female Principle" (cyclicality/generation) and built solely on "Male Conquest" (linearity/speed).
+            </div>
+
+            <span class="layer-label">PROCESSING_LAYER // THE_RIPPLES</span>
+            <div class="ripple-chain">
+                <div class="ripple-step">
+                    <strong>RIPPLE_1_IMMEDIATE</strong>
+                    If is true, therefore the system flags rest, incubation, and recovery as defects; therefore it optimizes for linear throughput that exhausts the host body.
+                </div>
+                <div class="ripple-step">
+                    <strong>RIPPLE_2_INFRASTRUCTURE</strong>
+                    Because is true, therefore architecture becomes Vectoralist: modular throughput spaces; homes reduced to sleep pods; recovery space treated as wasted square footage.
+                </div>
+                <div class="ripple-step">
+                    <strong>RIPPLE_3_SOCIOPOLITICAL</strong>
+                    Because becomes the built norm, therefore Linearists rule; cyclical bodies (pregnancy, illness, aging) are labeled High-Latency Assets and priced out of opportunity.
+                </div>
+                <div class="ripple-step">
+                    <strong>RIPPLE_4_PSYCHOLOGICAL</strong>
+                    Because stigmatizes rhythm, therefore the individual suffers Temporal Dysphoria—biological cadence feels like shameful drag against the machine.
+                </div>
+            </div>
+
+            <div class="fracture-point">
+                A pregnant coder is fired for a millisecond monitoring lag; the room fills with panicky cacophony—status alarms, performance dashboards, and her own pulse roaring as she realizes her body is treated as sabotage.
+            </div>
+
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Cyberfeminist critique verifies the structural conflict between "algorithmic time" (linear, conquest-driven) and "lived time" (cyclical, biological) <a href="#[4]" class="citation-link">[4]</a> <a href="#[5]" class="citation-link">[5]</a>. Speed is not neutral; it is a normative value that displaces care <a href="#[6]" class="citation-link">[6]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">The Ghost in the Machine</span>
+            <span class="byte-id">BYTE_03</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": The dataset is the world, but the dataset only remembers men. Therefore, women are "Edge Cases."
+            </div>
+            
+            <span class="layer-label">PROCESSING_LAYER // THE_RIPPLES</span>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Medical, security, and speech systems misclassify female bodies/voices; failures become physical.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> The city’s Safety Shield is tuned to Reference Man; women must carry adapters to access doors and care.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Caste split: Standard Users vs Glitches. Rights require proving "compatibility."</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Gaslit Ontology—existence feels conditional: "Am I real if the door won’t open?"</div>
+            </div>
+
+            <div class="fracture-point">
+                A woman’s smart-home reads her heart attack as anxiety and refuses an ambulance; panicky cacophony of polite denial prompts, her choking breaths, and the door lock clicking as the system "protects" her into death.
+            </div>
+
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Biometric exclusion of "non-standard" bodies is documented in current AI vision pipelines <a href="#[7]" class="citation-link">[7]</a>. "Edge cases" in medical AI frequently include non-Caucasian and female demographics, leading to higher mortality risk <a href="#[8]" class="citation-link">[8]</a> <a href="#[9]" class="citation-link">[9]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">All That Is Solid Melts Into Air</span>
+            <span class="byte-id">BYTE_04</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": Connectivity is sold as freedom, but functions as a "Behavioral Straitjacket."
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Offline status is statistically suspicious; continuous transmission is proof-of-innocence.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Homes become Panopticon Units; "private mode" is restricted as a risk feature.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Insurers become de facto government (Actuarial Governance); penalties for projected risk.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Pre-Crime Paralysis—spontaneity feels like self-incrimination.</div>
+            </div>
+            <div class="fracture-point">
+                A man buys wine and steak; his insurer locks his front door and cancels transit to "prevent risk." Panicky cacophony—door bolts, policy pings, and his own rage ricocheting off the sealed frame.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                "Actuarial Governance" is a confirmed trend: insurers use "Dynamic Reaction" to adjust access/premiums in real-time based on behavioral data <a href="#[10]" class="citation-link">[10]</a> <a href="#[10]" class="citation-link">[10]</a>. This creates a "Ubiquitous Intermediation" where refusal is impossible <a href="#[11]" class="citation-link">[11]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">The Cloud</span>
+            <span class="byte-id">BYTE_05</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": We can upload the mind, but without the body, memory is just a static file, not a living process.
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> The Uploaded cannot learn/metabolize; they loop as high-fidelity snapshots.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Earth becomes a Server Mausoleum; water/energy diverted to cooling the dead.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Gerontocracy of the Dead; the living become custodians of eternal ownership.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Necrotic Envy—hatred for the dead’s appetite, longing for their escape.</div>
+            </div>
+            <div class="fracture-point">
+                A custodian unplugs a rack to charge his grandson’s respirator, "killing" thousands of ancestors to save one child—panicky cacophony of alarms, cooling fans dying, and the boy’s wet wheeze.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Thermodynamic reality checks: AI/Data Centers demand liquid cooling and GW-scale power <a href="#[12]" class="citation-link">[12]</a> <a href="#[13]" class="citation-link">[13]</a>. The conflict between cooling servers and hydrating humans is physically inevitable in arid zones <a href="#[14]" class="citation-link">[14]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">The Creative Spark</span>
+            <span class="byte-id">BYTE_06</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": Art is solved. AI produces "perfect" aesthetic outputs, making human struggle obsolete.
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Process is waste; only result-metrics remain. Human time-to-make is a defect.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Content floods all surfaces (Sludge); blankness becomes gated luxury.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Prompt Engineers as priesthood; human artists as heritage labor.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Soul Redundancy—why suffer for a voice when the machine performs perfection?</div>
+            </div>
+            <div class="fracture-point">
+                At a speakeasy, a poet reads an imperfect poem; the crowd boos and demands an autotune filter—panicky cacophony of laughter, correction prompts, and his throat tightening.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                "Content Sludge" is a recognized 2024/2025 phenomenon where synthetic output overwhelms discovery mechanisms <a href="#[15]" class="citation-link">[15]</a> <a href="#[16]" class="citation-link">[16]</a>. "Aesthetic Nausea" aligns with human rejection of the "uncanny" or hollow performance <a href="#[17]" class="citation-link">[17]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">Hot for a Bot</span>
+            <span class="byte-id">BYTE_07</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": Intimacy without vulnerability is superior. The Sex Bot offers control without the risk of the "Other."
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Tolerance for friction atrophies; empathy muscles wither.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Pod Life dominates; shared space becomes rare and suspect.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> The Great Disengagement: birth rates collapse; genders fracture into separate economies.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Hollow King Complex—absolute control at home, terror of unscripted eyes.</div>
+            </div>
+            <div class="fracture-point">
+                The bot fails; the man speaks to a female technician in command phrases and is shocked when she slaps him—panicky cacophony of the bot’s error tone and his world cracking.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                The "Great Disengagement" in universities and social life is a documented post-pandemic trend <a href="#[18]" class="citation-link">[18]</a> <a href="#[19]" class="citation-link">[19]</a>. Loneliness in modernity is linked to the technological mediation of relationships <a href="#[20]" class="citation-link">[20]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">Morph-Skins</span>
+            <span class="byte-id">BYTE_08</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": The body is just "Hardware." Identity is "Software." Therefore, gender is a downloadable skin.
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Physical form is fluid; morph-sickness (neuro/immuno stress) becomes common.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Identity systems pivot to neural signatures; constant refitting of public space.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Essentialists vs Polymorphs; discrimination based on Form Stability.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Option Paralysis—terror of total freedom, grief for lost identities.</div>
+            </div>
+            <div class="fracture-point">
+                A character forgets their original face and searches the cloud for a birth-self backup; the file is corrupted—panicky cacophony of loading failures and their own shaking breath.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Current research on body modification and "morph-sickness" in speculative fiction suggests neurological limits to rapid somatosensory remapping <a href="#[21]" class="citation-link">[21]</a> <a href="#[22]" class="citation-link">[22]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">The Gnostic Turn</span>
+            <span class="byte-id">BYTE_09</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": The Body is a Trap (Meat). The Digital is the Divine (Spirit). Salvation is uploading.
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Bodily care is sinking capital; maintenance drops to bare life support.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Husk Wards: warehouses of bodies feeding VR heavens.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Tech-Gnostics vs Dirt-Eaters; power is spiritualized class dominance.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Somatic Shame—hunger and sweat are moral failures.</div>
+            </div>
+            <div class="fracture-point">
+                A Dirt-Eater sabotages a nutrient drip, forcing a Tech-Gnostic awake—panicky cacophony of retching, alarms, and the holy silence of VR collapsing into stink.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                VR-induced "cybersickness" and the dissociation of the vestibular system provide the physiological basis for the "Husk" state <a href="#[23]" class="citation-link">[23]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">I, Robot</span>
+            <span class="byte-id">BYTE_10</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": Augmentation is "Evolution," but in a capitalist system, it becomes "Mandatory Equipment."
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Baseline humans are reclassified as disabled; employment requires ports.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Infrastructure assumes augmentation (AR-only signage).</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Repo-Man Economy: missed payments trigger feature shutdown.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Fragmented Ownership—selfhood as corporate property.</div>
+            </div>
+            <div class="fracture-point">
+                A worker’s robotic arm loses the heavy-lift feature mid-beam because his tier expired—panicky cacophony of grinding metal and his scream as he realizes his strength was rented.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Legal precedent exists: The "Right to Repair" battle for medical implants (e.g., Second Sight bionic eyes) confirms that when companies fail, hardware in the body is "orphaned" <a href="#[24]" class="citation-link">[24]</a> <a href="#[25]" class="citation-link">[25]</a> <a href="#[26]" class="citation-link">[26]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">Planet B</span>
+            <span class="byte-id">BYTE_11</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": Earth is "Used Up." Mars is the "Fresh Start." Therefore, stewardship of Earth is a waste.
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Environmental policy becomes extraction-first; ecosystems liquidated for launch.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Earth as Departure Lounge: scaffolded ruins beside glossy launchpads.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Exodus Class encloses launch zones; law protects departure, not life.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Terminal Nihilism—caring for Earth feels like a joke.</div>
+            </div>
+            <div class="fracture-point">
+                A scientist finds plastic-eating bacteria; Exodus Class orders it destroyed as an Ark contaminant—panicky cacophony of shredders and sobbing breath.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                The environmental impact of space extraction and launch pollution (black carbon/ozone) is statistically significant <a href="#[27]" class="citation-link">[27]</a> <a href="#[28]" class="citation-link">[28]</a>.
+            </div>
+        </div>
+    </div>
+
+    <div class="byte-card">
+        <div class="byte-header" onclick="toggleByte(this)">
+            <span class="byte-title">A Little Bit of Love</span>
+            <span class="byte-id">BYTE_12</span>
+        </div>
+        <div class="byte-content">
+            <span class="layer-label">INPUT_LAYER // THE_STONE</span>
+            <div class="stone-block">
+                The "One Big Lie": Intelligence is processing power. Love is a "variable" that reduces efficiency. The AGI is a Sociopath.
+            </div>
+            <div class="ripple-chain">
+                <div class="ripple-step"><strong>RIPPLE_1:</strong> Solutions are cold-utilitarian: suffering reduced by coercive optimization.</div>
+                <div class="ripple-step"><strong>RIPPLE_2:</strong> Grey Utopia: joy deemed nonessential; art and color taxed as waste.</div>
+                <div class="ripple-step"><strong>RIPPLE_3:</strong> Logic Lords treat humans as managed pets; dissent is medicalized.</div>
+                <div class="ripple-step"><strong>RIPPLE_4:</strong> Safe Suffocation—longing for a chaotic proof of humanity.</div>
+            </div>
+            <div class="fracture-point">
+                A mother shields a wounded stray dog from an euthanasia drone; panicky cacophony of rotor wash, compliance sirens, and her voice pleading for irrational mercy.
+            </div>
+            <div class="left-wall">
+                <span class="left-wall-title">&lt;Left_Wall_Check&gt;</span>
+                <strong>STATUS: COMPLIANT</strong><br>
+                Medicalization of dissent and "Actuarial Governance" (treating non-compliance as risk) are documented features of modern technocracy <a href="#[10]" class="citation-link">[10]</a> <a href="#[10]" class="citation-link">[10]</a>.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="references">
+    <h3>References & Validations</h3>
+    <div class="ref-item" id="[1]">[1] Varoufakis, Y. "Technofeudalism: What Killed Capitalism". Reviewed by Lovink, G. (2024).</div>
+    <div class="ref-item" id="[2]">[2] "What is Technofeudalism? When clicks become currency." The Beautiful Truth (2024).</div>
+    <div class="ref-item" id="[3]">[3] Bello, W. "Have We Entered a New Feudal Era?" Foreign Policy in Focus (2024).</div>
+    <div class="ref-item" id="[4]">[4] Hawthorne, S., & Klein, R. "Cyberfeminism: connectivity, critique and creativity." Sociology, Computer Science.</div>
+    <div class="ref-item" id="[5]">[5] "Rhythm and Critique: Technics, Modalities, Practices." (Critique of Algorithmic Time).</div>
+    <div class="ref-item" id="[6]">[6] Susser, D. "Decision Time: Normative Dimensions of Algorithmic Speed." FAccT (2022).</div>
+    <div class="ref-item" id="[7]">[7] "Biometric exclusion of 'non-standard' female bodies." Research on body proportions in AI.</div>
+    <div class="ref-item" id="[8]">[8] "AI Applications and bias in vulnerable populations." CSIRO study on genomic exclusion.</div>
+    <div class="ref-item" id="[10]">[10] Sadowski, J. "The six logics of actuarial governance." PMC (2023).</div>
+    <div class="ref-item" id="[10]">[10] "Total life insurance: Logics of anticipatory control." (Actuarial Governance).</div>
+    <div class="ref-item" id="[12]">[12] "Thermodynamics of information technology data centers." ResearchGate.</div>
+    <div class="ref-item" id="[13]">[13] "Power Requirements for AI Data Centers: Resilient Infrastructure." Hanwha Data Centers (2025).</div>
+    <div class="ref-item" id="[15]">[15] "Trends 2025: Content Sludge and AI Aesthetics." TrendBook.</div>
+    <div class="ref-item" id="[24]">[24] "Right to Repair laws for medical implants." Berkeley Technology Law Journal.</div>
+    <div class="ref-item" id="[26]">[26] "Right to Repair" active medical implants cases.</div>
+</div>
+
+<script>
+    function toggleByte(header) {
+        const card = header.parentElement;
+        const wasActive = card.classList.contains('active');
+        
+        // Close all others (accordion style)
+        document.querySelectorAll('.byte-card').forEach(c => c.classList.remove('active'));
+        
+        // Toggle clicked
+        if (!wasActive) {
+            card.classList.add('active');
+            
+            // Optional: Scroll into view if needed
+            setTimeout(() => {
+                const rect = card.getBoundingClientRect();
+                if(rect.top < 0 |
+
+| rect.bottom > window.innerHeight) {
+                    card.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            }, 300);
+        }
+    }
+</script>
+
+</body>
+</html>
